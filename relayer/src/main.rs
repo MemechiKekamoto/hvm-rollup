@@ -12,6 +12,7 @@ use reqwest::Client;
 struct Calldata {
     data: String,
     proof: String,
+}
 
 struct Relayer {
     cache: Arc<Mutex<VecDeque<(String, Calldata)>>>,
