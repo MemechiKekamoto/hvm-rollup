@@ -1,96 +1,42 @@
-use serde::{Deserialize, Serialize};
-use std::collections::VecDeque;
-use std::error::Error;
-use std::sync::{Arc, Mutex};
-use tokio::runtime::Runtime;
-use web3::transports::Http;
-use web3::Web3;
-use log::{info, error};
-use reqwest::Client;
+use clap::Parser;
+use hvm_relayer::{calldata, connect, relay, runtime};
+use log::info;
 
-#[derive(Serialize, Deserialize, Debug)]
-struct Calldata {
-    data: String,
-    proof: String,
+#[derive(Debug, Parser)]
+#[command(name = "hvm-relayer", about = "offchain relayer", version)]
+struct Cli {
+    #[command(subcommand)]
+    command: Commands,
 }
 
-struct Relayer {
-    cache: Arc<Mutex<VecDeque<(String, Calldata)>>>,
-    web3: Web3<Http>,
-    client: Client,
-    sequencer_url: String,
+#[derive(Debug, clap::Subcommand)]
+enum Commands {
+    #[command(arg_required_else_help = true)]
+    Connect(connect::ConnectOpts),
+    #[command(arg_required_else_help = true)]
+    FetchCalldata(calldata::FetchOpts),
+    #[command(arg_required_else_help = true)]
+    Relay(relay::RelayOpts),
 }
 
-impl Relayer {
-    fn new(web3_url: &str, sequencer_url: &str) -> Result<Self, Box<dyn Error>> {
-        let transport = Http::new(web3_url)?;
-        let web3 = Web3::new(transport);
-        let client = Client::new();
-        Ok(Relayer {
-            cache: Arc::new(Mutex::new(VecDeque::new())),
-            web3,
-            client,
-            sequencer_url: sequencer_url.to_string(),
-        })
-    }
+fn main() {
+    env_logger::init();
+    let args = Cli::parse();
 
-    async fn verify_calldata(&self, calldata: &Calldata) -> Result<bool, Box<dyn Error>> {
-        Ok(true)
-    }
+    info!("Starting hvm relayer");
 
-    async fn generate_tx_hash(&self, calldata: &Calldata) -> Result<String, Box<dyn Error>> {
-        let hash = format!("tx_hash_{}", &calldata.data);
-        Ok(hash)
-    }
-
-    async fn send_tx_hash_to_blockchain(&self, tx_hash: &str) -> Result<(), Box<dyn Error>> {
-        println!("Sending tx_hash: {}", tx_hash);
-        Ok(())
-    }
-
-    async fn process_calldata(&self, calldata: Calldata) -> Result<(), Box<dyn Error>> {
-        if !self.verify_calldata(&calldata).await? {
-            return Err("Calldata verification failed".into());
+    match args.command {
+        Commands::Connect(opts) => {
+            let rt = runtime::get_rt(opts.threads);
+            rt.block_on(connect::start(opts));
         }
-
-        let tx_hash = self.generate_tx_hash(&calldata).await?;
-
-        let mut cache = self.cache.lock().unwrap();
-        cache.push_back((tx_hash.clone(), calldata));
-
-        self.send_tx_hash_to_blockchain(&tx_hash).await
-    }
-
-    async fn fetch_calldata_from_sequencer(&self) -> Result<Calldata, Box<dyn Error>> {
-        let response = self.client.get(&self.sequencer_url).send().await?;
-        let calldata: Calldata = response.json().await?;
-        Ok(calldata)
-    }
-
-    fn handle_massive_overload(&self) {
-        let mut cache = self.cache.lock().unwrap();
-        if cache.len() > 10000 {
-            cache.pop_front();
+        Commands::FetchCalldata(opts) => {
+            let rt = runtime::get_rt(opts.threads);
+            rt.block_on(calldata::fetch(opts));
+        }
+        Commands::Relay(opts) => {
+            let rt = runtime::get_rt(opts.threads);
+            rt.block_on(relay::start(opts));
         }
     }
-}
-
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn Error>> {
-    let relayer = Relayer::new("http://localhost:8545", "http://localhost:8080/sequencer")?;
-
-    match relayer.fetch_calldata_from_sequencer().await {
-        Ok(calldata) => {
-            if let Err(e) = relayer.process_calldata(calldata).await {
-                error!("Error processing calldata: {:?}", e);
-            }
-        }
-        Err(e) => {
-            error!("Error fetching calldata: {:?}", e);
-        }
-    }
-
-    relayer.handle_massive_overload();
-
-    Ok(())
 }
