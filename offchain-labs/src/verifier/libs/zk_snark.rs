@@ -21,7 +21,7 @@ impl VerifierLibs for ZKSnarkLibs {
         let groth16_proof: groth16::Proof<Bls12> = bincode::deserialize(&proof.data)
             .map_err(|e| HVMError::Verifier(format!("Failed to deserialize proof: {}", e)))?;
         
-        let public_inputs = vec![bls12_381::Scalar::zero()];  // Adjust based on your circuit
+        let public_inputs = vec![bls12_381::Scalar::zero()];
         
         let result = groth16::verify_proof(&self.verification_key, &groth16_proof, &public_inputs)
             .map_err(|e| HVMError::Verifier(format!("Proof verification failed: {}", e)))?;
