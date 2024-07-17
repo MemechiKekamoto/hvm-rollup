@@ -1,10 +1,15 @@
-#[derive(Clone, Debug)]
+use serde::{Serialize, Deserialize};
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Transaction {
-    pub data: Vec<u8>,
+    pub sender: String,
+    pub recipient: String,
+    pub amount: u64,
+    pub nonce: u64,
 }
 
 impl Transaction {
-    pub fn new(data: Vec<u8>) -> Self {
-        Self { data }
+    pub fn new(sender: String, recipient: String, amount: u64, nonce: u64) -> Self {
+        Self { sender, recipient, amount, nonce }
     }
 }

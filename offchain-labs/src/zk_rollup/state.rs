@@ -2,7 +2,7 @@ use super::Proof;
 use crate::error::HVMError;
 use serde::{Serialize, Deserialize};
 
-#[derive(Default, Clone, Serialize, Deserialize)]
+#[derive(Default, Clone, Serialize, Deserialize, Debug)]
 pub struct State {
     pub balance: u64,
     pub nonce: u64,
@@ -13,7 +13,7 @@ impl State {
         Self::default()
     }
 
-    pub fn apply_proof(&mut self, proof: &Proof) -> Result<(), HVMError> {
+    pub fn apply_proof(&mut self, _proof: &Proof) -> Result<(), HVMError> {
         self.balance += 1;
         self.nonce += 1;
         Ok(())
