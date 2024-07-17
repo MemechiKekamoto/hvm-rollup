@@ -1,5 +1,5 @@
-use offchain_labs::{Config, OffchainLabs};
-use log::info;
+use offchain_labs::{Config, OffchainLabs, sequencer::Transaction};
+use log::{info, error};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -15,13 +15,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     info!("OffchainLabs initialized");
 
     let transactions = vec![
-        vec![1, 2, 3, 4],
-        vec![5, 6, 7, 8],
-        vec![9, 10, 11, 12],
+        Transaction::new("Alice".to_string(), "Bob".to_string(), 100, 1),
+        Transaction::new("Bob".to_string(), "Charlie".to_string(), 50, 1),
+        Transaction::new("Charlie".to_string(), "Alice".to_string(), 25, 1),
     ];
 
     for (i, tx) in transactions.iter().enumerate() {
-        match hvm.process_transaction(tx) {
+        match hvm.process_transaction(tx.clone()) {
             Ok(is_valid) => {
                 info!("Transaction {} processed. Valid: {}", i, is_valid);
             }
@@ -32,6 +32,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     info!("All transactions processed");
+    info!("Pending transactions: {}", hvm.pending_transactions_count());
+    info!("Current state: {:?}", hvm.get_current_state()?);
 
     Ok(())
 }
