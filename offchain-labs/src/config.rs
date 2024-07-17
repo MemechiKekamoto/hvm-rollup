@@ -24,7 +24,7 @@ pub struct VerifierConfig {
     pub verification_key_path: PathBuf,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SequencerConfig {
     pub max_pending_transactions: usize,
     pub batch_interval_seconds: u64,
