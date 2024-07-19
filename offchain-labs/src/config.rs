@@ -28,6 +28,7 @@ pub struct VerifierConfig {
 pub struct SequencerConfig {
     pub max_pending_transactions: usize,
     pub batch_interval_seconds: u64,
+    pub max_batch_size: usize,
 }
 
 impl Config {
@@ -61,6 +62,7 @@ impl Default for Config {
             sequencer_config: SequencerConfig {
                 max_pending_transactions: 1000,
                 batch_interval_seconds: 60,
+                max_batch_size: 100,
             },
         }
     }
