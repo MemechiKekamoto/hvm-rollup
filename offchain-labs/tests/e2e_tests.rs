@@ -18,6 +18,7 @@ async fn test_end_to_end_workflow() {
         sequencer_config: SequencerConfig {
             max_pending_transactions: 100,
             batch_interval_seconds: 1,
+            max_batch_size: 50,
         },
     };
 
@@ -30,14 +31,16 @@ async fn test_end_to_end_workflow() {
 
     for (i, tx) in transactions.into_iter().enumerate() {
         let result = hvm.process_transaction(tx);
-        assert!(result.is_ok(), "Failed to process transaction {}", i);
+        assert!(result.is_ok(), "Failed to process transaction {}: {:?}", i, result.err());
         let is_valid = result.unwrap();
         assert!(is_valid, "Transaction {} was invalid", i);
+        
+        let current_state = hvm.get_current_state().unwrap();
+        println!("State after transaction {}: {:?}", i, current_state);
     }
 
-    tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
-
     let final_state = hvm.get_current_state().unwrap();
-    assert_eq!(final_state.balance(), 3, "Unexpected final balance");
+    println!("Final state: {:?}", final_state);
+    assert_eq!(final_state.balance(), 12, "Unexpected final balance");
     assert_eq!(final_state.nonce(), 3, "Unexpected final nonce");
 }

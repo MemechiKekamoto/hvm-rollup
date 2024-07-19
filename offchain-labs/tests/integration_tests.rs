@@ -17,6 +17,7 @@ fn create_test_config() -> Config {
         sequencer_config: SequencerConfig {
             max_pending_transactions: 100,
             batch_interval_seconds: 10,
+            max_batch_size: 50,
         },
     }
 }
@@ -52,5 +53,14 @@ fn test_multiple_transactions() {
         assert!(result.is_ok(), "Failed to process transaction {}", i);
     }
 
-    assert_eq!(hvm.pending_transactions_count(), 3);
+    assert_eq!(hvm.processed_transactions_count(), 3, "Expected 3 processed transactions");
+    assert_eq!(hvm.pending_transactions_count(), 0, "Expected 0 pending transactions");
+
+    let final_state = hvm.get_current_state().unwrap();
+    println!("Final state: {:?}", final_state);
+    assert_eq!(final_state.balance(), 12, "Unexpected final balance");
+    assert_eq!(final_state.nonce(), 3, "Unexpected final nonce");
+
+    println!("Processed transactions: {:?}", hvm.get_processed_transactions());
+    println!("Pending transactions: {:?}", hvm.get_pending_transactions());
 }
