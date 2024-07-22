@@ -3,7 +3,7 @@ use hvm_relayer::{calldata, connect, relay, runtime};
 use log::info;
 
 #[derive(Debug, Parser)]
-#[command(name = "hvm-relayer", about = "offchain relayer", version)]
+#[command(name = "hvm_relayer", about = "offchain relayer", version)]
 struct Cli {
     #[command(subcommand)]
     command: Commands,

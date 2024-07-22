@@ -15,8 +15,8 @@ Before setting up the project, ensure you have the following installed:
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/MemechiKekamoto/offchain-relayer.git
-cd offchain-relayer/relayer
+git clone https://github.com/MemechiKekamoto/hvm-rollup.git
+cd hvm-rollup/relayer
 ```
 2. Build the project:
 ```bash
@@ -38,4 +38,4 @@ We welcome contributions from the community. If you wish to contribute, please f
 
 ## Join Us
 
-Join us in pioneering the future of parallel computing, driving innovation, and transforming technology across industries. For more information, visit our [website](https://quantumfusion.pro/) and follow us on [GitHub](https://github.com/MemechiKekamoto/offchain-relayer).
+Join us in pioneering the future of parallel computing, driving innovation, and transforming technology across industries. For more information, visit our [website](https://quantumfusion.pro/) and follow us on [GitHub](https://github.com/MemechiKekamoto/hvm-rollup).
