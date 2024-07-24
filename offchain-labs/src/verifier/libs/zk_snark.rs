@@ -4,11 +4,12 @@ use super::super::VerifierLibs;
 use bellman::{
     Circuit, ConstraintSystem, SynthesisError,
     groth16::{
-        generate_random_parameters, prepare_verifying_key, verify_proof,
+        prepare_verifying_key, verify_proof,
         Proof as BMProof, VerifyingKey,
     },
 };
-use bls12_381::Bls12;
+use bls12_381::{Bls12, Scalar};
+use ff::PrimeField;
 use serde::{Serialize, Deserialize};
 
 pub struct ZKSnarkLibs {
@@ -41,10 +42,8 @@ mod proof_serde {
 }
 
 impl ZKSnarkLibs {
-    pub fn new() -> Self {
-        let circuit = DummyCircuit { x: None };
-        let params = generate_random_parameters::<Bls12, _, _>(circuit, &mut rand::thread_rng()).unwrap();
-        Self { verification_key: params.vk }
+    pub fn new(verification_key: VerifyingKey<Bls12>) -> Self {
+        Self { verification_key }
     }
 }
 
@@ -55,23 +54,21 @@ impl VerifierLibs for ZKSnarkLibs {
         
         let groth16_proof = serializable_proof.0;
         
-        let public_inputs = vec![bls12_381::Scalar::zero()];
+        let public_inputs = vec![Scalar::zero()];
         
         let pvk = prepare_verifying_key(&self.verification_key);
         
-        match verify_proof(&pvk, &groth16_proof, &public_inputs) {
-            Ok(()) => Ok(true),
-            Err(e) => Err(HVMError::Verifier(format!("Proof verification failed: {}", e)))
-        }
+        verify_proof(&pvk, &groth16_proof, &public_inputs)
+            .map_err(|e| HVMError::Verifier(format!("Proof verification failed: {}", e)))
     }
 }
 
 struct DummyCircuit {
-    x: Option<bls12_381::Scalar>,
+    x: Option<Scalar>,
 }
 
-impl Circuit<bls12_381::Scalar> for DummyCircuit {
-    fn synthesize<CS: ConstraintSystem<bls12_381::Scalar>>(
+impl Circuit<Scalar> for DummyCircuit {
+    fn synthesize<CS: ConstraintSystem<Scalar>>(
         self,
         cs: &mut CS,
     ) -> Result<(), SynthesisError> {
