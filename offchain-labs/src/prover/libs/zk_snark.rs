@@ -1,7 +1,7 @@
 use crate::error::HVMError;
 use crate::zk_rollup::Proof;
 use crate::sequencer::Batch;
-use super::super::ProverLibs;
+use crate::prover::ProverLibs;
 use bellman::{
     Circuit, ConstraintSystem, SynthesisError,
     groth16::{
@@ -9,7 +9,8 @@ use bellman::{
         Parameters, Proof as BMProof,
     },
 };
-use bls12_381::Bls12;
+use bls12_381::{Bls12, Scalar};
+use ff::PrimeField;
 use rand::thread_rng;
 use serde::{Serialize, Deserialize};
 
@@ -52,7 +53,7 @@ impl ZKSnarkLibs {
 
 impl ProverLibs for ZKSnarkLibs {
     fn generate_proof(&self, batch: &Batch) -> Result<Proof, HVMError> {
-        let circuit = DummyCircuit { x: Some(bls12_381::Scalar::from(batch.transactions().len() as u64)) };
+        let circuit = DummyCircuit { x: Some(Scalar::from(batch.transactions().len() as u64)) };
         
         let proof = create_random_proof(circuit, &self.proving_key, &mut thread_rng())
             .map_err(|e| HVMError::Prover(format!("Failed to generate proof: {}", e)))?;
@@ -66,11 +67,11 @@ impl ProverLibs for ZKSnarkLibs {
 }
 
 struct DummyCircuit {
-    x: Option<bls12_381::Scalar>,
+    x: Option<Scalar>,
 }
 
-impl Circuit<bls12_381::Scalar> for DummyCircuit {
-    fn synthesize<CS: ConstraintSystem<bls12_381::Scalar>>(
+impl Circuit<Scalar> for DummyCircuit {
+    fn synthesize<CS: ConstraintSystem<Scalar>>(
         self,
         cs: &mut CS,
     ) -> Result<(), SynthesisError> {

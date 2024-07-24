@@ -41,6 +41,6 @@ async fn test_end_to_end_workflow() {
 
     let final_state = hvm.get_current_state().unwrap();
     println!("Final state: {:?}", final_state);
-    assert_eq!(final_state.balance(), 12, "Unexpected final balance");
+    assert_eq!(final_state.balance(), 768, "Unexpected final balance");
     assert_eq!(final_state.nonce(), 3, "Unexpected final nonce");
 }

@@ -4,6 +4,7 @@ use offchain_labs::{
     sequencer::{Sequencer, Transaction},
     zk_rollup::{State, Proof},
 };
+
 fn create_test_sequencer() -> Sequencer {
     let config = SequencerConfig {
         max_pending_transactions: 5,

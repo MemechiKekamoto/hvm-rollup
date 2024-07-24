@@ -22,4 +22,7 @@ pub enum HVMError {
 
     #[error("Configuration error: {0}")]
     Config(String),
+
+    #[error("Setup error: {0}")]
+    Setup(String),
 }
