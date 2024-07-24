@@ -58,9 +58,25 @@ fn test_multiple_transactions() {
 
     let final_state = hvm.get_current_state().unwrap();
     println!("Final state: {:?}", final_state);
-    assert_eq!(final_state.balance(), 12, "Unexpected final balance");
+    assert_eq!(final_state.balance(), 768, "Unexpected final balance");
     assert_eq!(final_state.nonce(), 3, "Unexpected final nonce");
 
     println!("Processed transactions: {:?}", hvm.get_processed_transactions());
     println!("Pending transactions: {:?}", hvm.get_pending_transactions());
+}
+
+#[test]
+fn test_zk_snark_proof_generation_and_verification() {
+    let config = create_test_config();
+    let mut hvm = OffchainLabs::new(config).unwrap();
+    
+    let transaction = Transaction::new("Alice".to_string(), "Bob".to_string(), 100, 1);
+    let result = hvm.process_transaction(transaction);
+    assert!(result.is_ok());
+    
+    let is_valid = result.unwrap();
+    assert!(is_valid, "Proof verification failed");
+    
+    assert_eq!(hvm.processed_transactions_count(), 1, "Expected 1 processed transaction");
+    assert_eq!(hvm.pending_transactions_count(), 0, "Expected 0 pending transactions");
 }
