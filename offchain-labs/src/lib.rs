@@ -4,14 +4,16 @@ pub mod prover;
 pub mod sequencer;
 pub mod verifier;
 pub mod zk_rollup;
+pub mod bend;
 
 pub use config::Config;
 use error::HVMError;
 use sequencer::Transaction;
-use prover::{BatchCircuit, ZKProver};
+use prover::{BendProgramCircuit, ZKProver};
 use verifier::ZKVerifier;
+use bend::BendProgram;
 
-use ark_bn254::{Bn254, Fr};
+use ark_bn254::Bn254;
 use ark_groth16::Groth16;
 use ark_snark::SNARK;
 use ark_std::rand::thread_rng;
@@ -20,13 +22,24 @@ pub struct OffchainLabs {
     prover: ZKProver,
     sequencer: sequencer::Sequencer,
     verifier: ZKVerifier,
-    public_inputs: Vec<Fr>,
 }
 
 impl OffchainLabs {
     pub fn new(config: Config) -> Result<Self, HVMError> {
         let mut rng = thread_rng();
-        let circuit = BatchCircuit::<Fr>::new(&sequencer::Batch::new(vec![]));
+        let program = BendProgram::new(
+            vec![],
+            bend::ProgramMetadata {
+                name: "Bend program".to_string(),
+                version: "0.1.0".to_string(),
+                description: "Program for setup".to_string(),
+            },
+            "Alice".to_string(),
+            1000,
+        );
+
+        let binding = sequencer::Batch::new(vec![], vec![program.clone()]);
+        let circuit = BendProgramCircuit::new(&binding);
         
         let (pk, vk) = Groth16::<Bn254>::circuit_specific_setup(circuit, &mut rng)
             .map_err(|e| HVMError::Setup(format!("Failed to generate ZK-SNARK keys: {}", e)))?;
@@ -35,13 +48,10 @@ impl OffchainLabs {
         let sequencer = sequencer::Sequencer::new(zk_rollup::State::default(), config.sequencer_config.clone());
         let verifier = ZKVerifier::new(vk.clone());
 
-        let public_inputs = vec![Fr::from(1u64); vk.gamma_abc_g1.len() - 1];
-
         Ok(Self {
             prover,
             sequencer,
             verifier,
-            public_inputs,
         })
     }
 
@@ -54,7 +64,7 @@ impl OffchainLabs {
             let proof = self.prover.generate_proof(&batch)?;
             println!("Proof generated: {:?}", proof);           
 
-            let is_valid = self.verifier.verify_proof(&proof, &self.public_inputs)?;
+            let is_valid = self.verifier.verify_proof(&proof, &batch.programs().iter().flat_map(|p| p.get_public_inputs()).collect::<Vec<_>>())?;
             println!("Proof verification result: {}", is_valid);
             
             if is_valid {
@@ -67,6 +77,10 @@ impl OffchainLabs {
             println!("No batch created");
             Ok(true)
         }
+    }
+
+    pub fn submit_program(&mut self, program: BendProgram) -> Result<(), HVMError> {
+        self.sequencer.submit_program(program)
     }
 
     pub fn get_current_state(&self) -> Result<zk_rollup::State, HVMError> {
