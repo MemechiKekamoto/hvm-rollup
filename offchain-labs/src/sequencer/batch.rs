@@ -1,16 +1,18 @@
 use super::transaction::Transaction;
+use crate::bend::BendProgram;
 use serde::{Serialize, Deserialize};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Batch {
     transactions: Vec<Transaction>,
+    programs: Vec<BendProgram>,
     timestamp: u64,
     batch_id: u64,
 }
 
 impl Batch {
-    pub fn new(transactions: Vec<Transaction>) -> Self {
+    pub fn new(transactions: Vec<Transaction>, programs: Vec<BendProgram>) -> Self {
         let timestamp = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap()
@@ -21,6 +23,7 @@ impl Batch {
 
         Self {
             transactions,
+            programs,
             timestamp,
             batch_id,
         }
@@ -28,6 +31,10 @@ impl Batch {
 
     pub fn transactions(&self) -> &[Transaction] {
         &self.transactions
+    }
+
+    pub fn programs(&self) -> &[BendProgram] {
+        &self.programs
     }
 
     pub fn timestamp(&self) -> u64 {
