@@ -28,25 +28,3 @@ async fn main() {
         std::process::exit(1);
     }
 }
-
-// fn main() {
-//     env_logger::init();
-//     let args = Cli::parse();
-
-//     info!("Starting hvm relayer");
-
-//     match args.command {
-//         Commands::Connect(opts) => {
-//             let rt = runtime::get_rt(opts.threads);
-//             rt.block_on(connect::start(opts));
-//         }
-//         Commands::FetchCalldata(opts) => {
-//             let rt = runtime::get_rt(opts.threads);
-//             rt.block_on(calldata::fetch(opts));
-//         }
-//         Commands::Relay(opts) => {
-//             let rt = runtime::get_rt(opts.threads);
-//             rt.block_on(relay::start(opts));
-//         }
-//     }
-// }
