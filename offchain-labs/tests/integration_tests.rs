@@ -16,8 +16,10 @@ fn create_test_config() -> Config {
         },
         sequencer_config: SequencerConfig {
             max_pending_transactions: 100,
+            max_pending_programs: 50,
             batch_interval_seconds: 10,
             max_batch_size: 50,
+            max_programs_per_batch: 25,
         },
     }
 }

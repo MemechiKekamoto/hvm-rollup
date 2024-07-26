@@ -8,8 +8,10 @@ use offchain_labs::{
 fn create_test_sequencer() -> Sequencer {
     let config = SequencerConfig {
         max_pending_transactions: 5,
+        max_pending_programs: 3,
         batch_interval_seconds: 1,
         max_batch_size: 3,
+        max_programs_per_batch: 2,
     };
     Sequencer::new(State::default(), config)
 }

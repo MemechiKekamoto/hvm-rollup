@@ -17,8 +17,10 @@ async fn test_end_to_end_workflow() {
         },
         sequencer_config: SequencerConfig {
             max_pending_transactions: 100,
-            batch_interval_seconds: 1,
+            max_pending_programs: 50,
+            batch_interval_seconds: 10,
             max_batch_size: 50,
+            max_programs_per_batch: 25,
         },
     };
 
