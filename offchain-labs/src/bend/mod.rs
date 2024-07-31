@@ -1,13 +1,18 @@
 use crate::error::HVMError;
 use ark_bn254::Fr;
+use ark_relations::r1cs::{ConstraintSynthesizer, ConstraintSystemRef, SynthesisError};
+use ark_relations::lc;
 use serde::{Serialize, Deserialize};
+use sha2::{Sha256, Digest};
+
+pub mod storage;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct BendProgram {
+    id: String,
     bytecode: Vec<u8>,
     metadata: ProgramMetadata,
     author: String,
-    execution_cost: u64,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -18,11 +23,16 @@ pub struct ProgramMetadata {
 }
 
 impl BendProgram {
-    pub fn new(bytecode: Vec<u8>, metadata: ProgramMetadata, author: String, execution_cost: u64) -> Self {
-        Self { bytecode, metadata, author, execution_cost }
+    pub fn new(bytecode: Vec<u8>, metadata: ProgramMetadata, author: String) -> Self {
+        let id = Self::generate_id(&bytecode);
+        Self { id, bytecode, metadata, author }
     }
 
-    pub fn execute_and_trace(&self) -> Result<Vec<Fr>, HVMError> {
+    pub fn id(&self) -> &str {
+        &self.id
+    }
+
+    pub fn execute(&self, _inputs: Vec<u8>) -> Result<Vec<Fr>, HVMError> {
         Ok(vec![Fr::from(1u64), Fr::from(2u64), Fr::from(3u64)])
     }
 
@@ -30,30 +40,29 @@ impl BendProgram {
         vec![Fr::from(1u64)]
     }
 
-    pub fn execution_cost(&self) -> u64 {
-        self.execution_cost
+    fn generate_id(bytecode: &[u8]) -> String {
+        let mut hasher = Sha256::new();
+        hasher.update(bytecode);
+        format!("{:x}", hasher.finalize())
     }
 }
 
-pub struct BendVM {}
+pub struct BendCircuit;
 
-impl BendVM {
-    pub fn new() -> Self {
-        Self {}
+impl Default for BendCircuit {
+    fn default() -> Self {
+        Self
     }
+}
 
-    pub fn estimate_resources(&self, program: &BendProgram) -> Result<crate::prover::ResourceUsage, HVMError> {
-        Ok(crate::prover::ResourceUsage {
-            cpu_cycles: program.execution_cost(),
-            memory_usage: 1024,
-        })
-    }
+impl ConstraintSynthesizer<Fr> for BendCircuit {
+    fn generate_constraints(self, cs: ConstraintSystemRef<Fr>) -> Result<(), SynthesisError> {
+        let a = cs.new_witness_variable(|| Ok(Fr::from(10u64)))?;
+        let b = cs.new_witness_variable(|| Ok(Fr::from(20u64)))?;
+        let c = cs.new_input_variable(|| Ok(Fr::from(30u64)))?;
 
-    pub fn optimize(&self, program: &BendProgram) -> Result<BendProgram, HVMError> {
-        Ok(program.clone())
-    }
+        cs.enforce_constraint(lc!() + a, lc!() + b, lc!() + c)?;
 
-    pub fn execute(&self, _program: &BendProgram, _inputs: &[Fr]) -> Result<Vec<Fr>, HVMError> {
-        Ok(vec![Fr::from(1u64), Fr::from(2u64), Fr::from(3u64)])
+        Ok(())
     }
 }
