@@ -1,14 +1,16 @@
-mod batch;
-mod transaction;
-
 use crate::error::HVMError;
 use crate::zk_rollup::{Proof, State};
 use crate::config::SequencerConfig;
 use crate::bend::BendProgram;
+use std::time::{Duration, Instant};
+use std::collections::{VecDeque, HashMap};
+use ark_serialize::CanonicalSerialize;
+
+pub mod batch;
+pub mod transaction;
+
 pub use batch::Batch;
 pub use transaction::Transaction;
-use std::time::{Duration, Instant};
-use std::collections::VecDeque;
 
 pub struct Sequencer {
     state: State,
@@ -16,6 +18,7 @@ pub struct Sequencer {
     processed_transactions: Vec<Transaction>,
     pending_programs: VecDeque<BendProgram>,
     processed_programs: Vec<BendProgram>,
+    deployed_programs: HashMap<String, BendProgram>,
     config: SequencerConfig,
     last_batch_time: Instant,
 }
@@ -28,6 +31,7 @@ impl Sequencer {
             processed_transactions: Vec::new(),
             pending_programs: VecDeque::new(),
             processed_programs: Vec::new(),
+            deployed_programs: HashMap::new(),
             config,
             last_batch_time: Instant::now(),
         }
@@ -49,8 +53,14 @@ impl Sequencer {
         Ok(())
     }
 
+    pub fn deploy_program(&mut self, program: BendProgram) -> Result<(), HVMError> {
+        let program_id = program.id().to_string();
+        self.deployed_programs.insert(program_id, program);
+        Ok(())
+    }
+
     pub fn create_batch(&mut self, force: bool) -> Result<Option<Batch>, HVMError> {
-        if self.pending_transactions.is_empty() {
+        if self.pending_transactions.is_empty() && self.pending_programs.is_empty() {
             return Ok(None);
         }
     
@@ -91,6 +101,22 @@ impl Sequencer {
         }
         
         result
+    }
+
+    pub fn execute_program(&self, program_id: &str, inputs: Vec<u8>) -> Result<Vec<u8>, HVMError> {
+        let program = self.deployed_programs.get(program_id)
+            .ok_or_else(|| HVMError::Sequencer(format!("Program not found: {}", program_id)))?;
+        
+        let result = program.execute(inputs)?;
+        Ok(result
+            .iter()
+            .flat_map(|fr| {
+                let mut bytes = Vec::new();
+                fr.serialize_uncompressed(&mut bytes)
+                    .unwrap_or_else(|_| bytes.clear());
+                bytes
+            })
+            .collect())
     }
 
     pub fn get_current_state(&self) -> State {
