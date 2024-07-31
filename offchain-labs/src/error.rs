@@ -25,4 +25,10 @@ pub enum HVMError {
 
     #[error("Setup error: {0}")]
     Setup(String),
+
+    #[error("Storage error: {0}")]
+    StorageLock(String),
+
+    #[error("Program error: {0}")]
+    ProgramNotFound(String),
 }
