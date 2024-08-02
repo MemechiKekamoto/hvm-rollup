@@ -35,7 +35,7 @@ fn test_offchain_labs_initialization() {
 fn test_transaction_processing() {
     let config = create_test_config();
     let mut hvm = OffchainLabs::new(config).unwrap();
-    let transaction = Transaction::new("Alice".to_string(), "Bob".to_string(), 100, 1);
+    let transaction = Transaction::new("Alice".to_string(), "Bob".to_string(), vec![100], 1, "test_program".to_string());
     let result = hvm.process_transaction(transaction);
     assert!(result.is_ok());
 }
@@ -45,9 +45,9 @@ fn test_multiple_transactions() {
     let config = create_test_config();
     let mut hvm = OffchainLabs::new(config).unwrap();
     let transactions = vec![
-        Transaction::new("Alice".to_string(), "Bob".to_string(), 100, 1),
-        Transaction::new("Bob".to_string(), "Charlie".to_string(), 50, 1),
-        Transaction::new("Charlie".to_string(), "Alice".to_string(), 25, 1),
+        Transaction::new("Alice".to_string(), "Bob".to_string(), vec![100], 1, "test_program".to_string()),
+        Transaction::new("Bob".to_string(), "Charlie".to_string(), vec![50], 1, "test_program".to_string()),
+        Transaction::new("Charlie".to_string(), "Alice".to_string(), vec![25], 1, "test_program".to_string()),
     ];
 
     for (i, tx) in transactions.into_iter().enumerate() {
@@ -72,7 +72,7 @@ fn test_zk_snark_proof_generation_and_verification() {
     let config = create_test_config();
     let mut hvm = OffchainLabs::new(config).unwrap();
     
-    let transaction = Transaction::new("Alice".to_string(), "Bob".to_string(), 100, 1);
+    let transaction = Transaction::new("Alice".to_string(), "Bob".to_string(), vec![100], 1, "test_program".to_string());
     let result = hvm.process_transaction(transaction);
     assert!(result.is_ok());
     
