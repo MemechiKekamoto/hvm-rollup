@@ -15,9 +15,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     info!("OffchainLabs initialized");
 
     let transactions = vec![
-        Transaction::new("Alice".to_string(), "Bob".to_string(), 100, 1),
-        Transaction::new("Bob".to_string(), "Charlie".to_string(), 50, 1),
-        Transaction::new("Charlie".to_string(), "Alice".to_string(), 25, 1),
+        Transaction::new("Alice".to_string(), "Bob".to_string(), vec![100], 1, "test_program".to_string()),
+        Transaction::new("Bob".to_string(), "Charlie".to_string(), vec![50], 1, "test_program".to_string()),
+        Transaction::new("Charlie".to_string(), "Alice".to_string(), vec![25], 1, "test_program".to_string()),
     ];
 
     for (i, tx) in transactions.iter().enumerate() {
