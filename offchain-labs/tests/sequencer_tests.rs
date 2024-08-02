@@ -19,7 +19,7 @@ fn create_test_sequencer() -> Sequencer {
 #[test]
 fn test_process_transaction() {
     let mut sequencer = create_test_sequencer();
-    let tx = Transaction::new("Alice".to_string(), "Bob".to_string(), 100, 1);
+    let tx = Transaction::new("Alice".to_string(), "Bob".to_string(), vec![100], 1, "test_program".to_string());
     assert!(sequencer.process_transaction(tx).is_ok());
     assert_eq!(sequencer.pending_transactions_count(), 1);
 }
@@ -28,10 +28,10 @@ fn test_process_transaction() {
 fn test_max_pending_transactions() {
     let mut sequencer = create_test_sequencer();
     for i in 0..5 {
-        let tx = Transaction::new(format!("Sender{}", i), format!("Recipient{}", i), 100, 1);
+        let tx = Transaction::new(format!("Sender{}", i), format!("Recipient{}", i), vec![100], 1, "test_program".to_string());
         assert!(sequencer.process_transaction(tx).is_ok());
     }
-    let tx = Transaction::new("Alice".to_string(), "Bob".to_string(), 100, 1);
+    let tx = Transaction::new("Alice".to_string(), "Bob".to_string(), vec![100], 1, "test_program".to_string());
     assert!(sequencer.process_transaction(tx).is_err());
 }
 
@@ -40,7 +40,7 @@ fn test_create_batch() {
     let mut sequencer = create_test_sequencer();
 
     for i in 0..4 {
-        let tx = Transaction::new(format!("Sender{}", i), format!("Recipient{}", i), 100, 1);
+        let tx = Transaction::new(format!("Sender{}", i), format!("Recipient{}", i), vec![100], 1, "test_program".to_string());
         sequencer.process_transaction(tx).unwrap();
     }
 
@@ -68,7 +68,7 @@ fn test_apply_proof() {
     let initial_state = sequencer.get_current_state();
     
     for i in 0..3 {
-        let tx = Transaction::new(format!("Sender{}", i), format!("Recipient{}", i), 100, 1);
+        let tx = Transaction::new(format!("Sender{}", i), format!("Recipient{}", i), vec![100], 1, "test_program".to_string());
         sequencer.process_transaction(tx).unwrap();
     }
     let batch = sequencer.create_batch(true).unwrap().unwrap();
