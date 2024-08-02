@@ -31,4 +31,16 @@ pub enum HVMError {
 
     #[error("Program error: {0}")]
     ProgramNotFound(String),
+
+    #[error("Estimation error: {0}")]
+    Estimation(String),
+
+    #[error("Optimization error: {0}")]
+    Optimization(String),
+
+    #[error("Execution error: {0}")]
+    Execution(String),
+
+    #[error("Balance error")]
+    InsufficientBalance(),
 }
