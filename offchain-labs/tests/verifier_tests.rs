@@ -26,9 +26,9 @@ async fn test_verifier_verify_proof() {
 
     let mut hvm = OffchainLabs::new(config).unwrap();
     let transactions = vec![
-        Transaction::new("Alice".to_string(), "Bob".to_string(), 100, 1),
-        Transaction::new("Bob".to_string(), "Charlie".to_string(), 50, 2),
-        Transaction::new("Charlie".to_string(), "Alice".to_string(), 25, 3),
+        Transaction::new("Alice".to_string(), "Bob".to_string(), vec![100], 1, "test_program".to_string()),
+        Transaction::new("Bob".to_string(), "Charlie".to_string(), vec![50], 2, "test_program".to_string()),
+        Transaction::new("Charlie".to_string(), "Alice".to_string(), vec![25], 3, "test_program".to_string()),
     ];
 
     for (i, tx) in transactions.into_iter().enumerate() {
