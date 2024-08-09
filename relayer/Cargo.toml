@@ -32,6 +32,7 @@ futures-util = "0.3.21"
 thiserror = "1.0.48"
 clap = { version = "4.3", features = ["derive"] }
 schnorrkel = { version = "0.11.4", package = "schnorrkel" }
+offchain_labs = { version = "0.1.0", path = "../offchain-labs" }
 
 [dev-dependencies]
 tokio-test = "0.4.4"
