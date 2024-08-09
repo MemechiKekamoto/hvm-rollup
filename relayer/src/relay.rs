@@ -1,5 +1,4 @@
 use anyhow::{Context, Result};
-
 use serde::{Deserialize, Serialize};
 use subxt::{OnlineClient, PolkadotConfig};
 use subxt::config::polkadot::PolkadotExtrinsicParamsBuilder as Params;
@@ -9,7 +8,7 @@ use tracing::{info, error};
 use clap::Parser;
 use hex;
 use url::Url;
-use sp_core::H256;
+use sp_core::{H256, Hasher, blake2_256};
 use std::convert::Infallible;
 use warp::reject::Reject;
 
@@ -17,8 +16,9 @@ use warp::reject::Reject;
 pub mod polkadot {}
 
 #[derive(Debug, Deserialize, Serialize)]
-struct DummyData {
-    data: String,
+struct ExecuteProgramData {
+    program_id: H256,
+    input: Vec<u8>,
 }
 
 #[derive(Debug, Clone, Parser)]
@@ -26,14 +26,8 @@ pub struct RelayOpts {
     #[arg(short, long, default_value = "ws://127.0.0.1:9944")]
     pub substrate_url: Url,
 
-    // #[arg(short, long)]
-    // pub sequencer_url: Url,
-
-    #[arg(short = 't', long, default_value = "0", value_name = "NUM")]
-    pub threads: usize,
-
-    #[arg(short, long, default_value = "100")]
-    pub batch_size: usize,
+    #[arg(short, long, default_value = "3030")]
+    pub port: u16,
 }
 
 #[derive(Debug)]
@@ -44,23 +38,32 @@ struct CustomError {
 impl Reject for CustomError {}
 
 pub async fn run(opts: RelayOpts) -> Result<(), Box<dyn std::error::Error>> {
-    tracing_subscriber::fmt::init();
+    let client = OnlineClient::<PolkadotConfig>::from_url(opts.substrate_url.as_str()).await?;
 
-    let routes = warp::path("receive")
-        .and(warp::post())
+    let routes = warp::post()
+        .and(warp::path("execute"))
         .and(warp::body::json())
-        .and_then(move |dummy_data: DummyData| handle_request(opts.clone(), dummy_data));
+        .and_then(move |data: ExecuteProgramData| {
+            let client = client.clone();
+            async move {
+                match execute_bend_program(&client, data).await {
+                    Ok(_) => Ok(warp::reply::json(&"Success")),
+                    Err(e) => Err(warp::reject::custom(CustomError { message: e.to_string() })),
+                }
+            }
+        });
 
-    info!("Starting the relayer server on http://127.0.0.1:3030");
-    warp::serve(routes).run(([127, 0, 0, 1], 3030)).await;
+    info!("Starting the relayer server on http://127.0.0.1:{}", opts.port);
+    warp::serve(routes).run(([127, 0, 0, 1], opts.port)).await;
     Ok(())
 }
 
-async fn handle_request(opts: RelayOpts, dummy_data: DummyData) -> Result<impl warp::Reply, warp::Rejection> {
-    info!("Received data: {:?}", dummy_data);
+async fn handle_request(opts: RelayOpts, program_data: ExecuteProgramData) -> Result<impl warp::Reply, warp::Rejection> {
+    info!("Received data: {:?}", program_data);
 
-    let calldata = convert_to_calldata(&dummy_data.data);
-    info!("Calldata: {:?}", calldata);
+    let calldata = execute_program_data_to_h256(&program_data);
+    info!("Converted to H256: {:?}", calldata);
+
     match send_extrinsic(&opts, calldata).await {
         Ok(_) => Ok(warp::reply::json(&"Success")),
         Err(e) => {
@@ -70,14 +73,10 @@ async fn handle_request(opts: RelayOpts, dummy_data: DummyData) -> Result<impl w
     }
 }
 
-fn convert_to_calldata(data: &str) -> H256 {
-    let mut padded_data = [0u8; 32];
-    let bytes = data.as_bytes();
-
-    let len = bytes.len().min(32);
-    padded_data[..len].copy_from_slice(&bytes[..len]);
-
-    H256::from_slice(&padded_data)
+fn execute_program_data_to_h256(data: &ExecuteProgramData) -> H256 {
+    let mut input = data.program_id.as_bytes().to_vec();
+    input.extend_from_slice(&data.input);
+    H256::from(blake2_256(&input))
 }
 
 fn hash_to_hex_string(hash: &[u8; 32]) -> String {
@@ -86,7 +85,6 @@ fn hash_to_hex_string(hash: &[u8; 32]) -> String {
 
 async fn send_extrinsic(opts: &RelayOpts, calldata: H256) -> Result<(), Box<dyn std::error::Error>> {
     let client = OnlineClient::<PolkadotConfig>::from_url(opts.substrate_url.as_str()).await?;
-    // let update_client = client.subscribe_to_updates();
     let metadata = client.metadata();
     let types = metadata.types();
     let pallet = metadata
@@ -119,5 +117,23 @@ async fn send_extrinsic(opts: &RelayOpts, calldata: H256) -> Result<(), Box<dyn 
     let tx_hash = client.tx().sign_and_submit(&tx, &from, tx_params).await?;
 
     info!("Transaction submitted with hash: {:?}", tx_hash);
+    Ok(())
+}
+
+async fn execute_bend_program(client: &OnlineClient<PolkadotConfig>, data: ExecuteProgramData) -> Result<()> {
+    info!("Executing Bend program: {:?}", data.program_id);
+
+    let from = dev::alice();
+    let tx = polkadot::tx().bend_program_execution().execute_program(data.program_id, data.input);
+
+    let latest_block = client.blocks().at_latest().await?;
+    let tx_params = subxt::config::polkadot::PolkadotExtrinsicParamsBuilder::new()
+        .tip(1_000)
+        .mortal(latest_block.header(), 32)
+        .build();
+
+    let tx_hash = client.tx().sign_and_submit(&tx, &from, tx_params).await?;
+    info!("Bend program execution submitted. Transaction hash: {:?}", tx_hash);
+    
     Ok(())
 }
