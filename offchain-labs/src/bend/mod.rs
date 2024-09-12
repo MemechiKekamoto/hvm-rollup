@@ -35,6 +35,7 @@ impl BendProgram {
     }
 }
 
+#[derive(Clone)]
 pub struct BendVM {}
 
 impl BendVM {

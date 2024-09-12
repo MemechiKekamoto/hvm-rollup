@@ -8,6 +8,7 @@ use ark_ec::AffineRepr;
 use ark_ff::PrimeField;
 use std::ops::AddAssign;
 
+#[derive(Clone)]
 pub struct ZKVerifier {
     verifying_key: PreparedVerifyingKey<Bn254>,
 }

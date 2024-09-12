@@ -11,6 +11,7 @@ use ark_relations::lc;
 use ark_relations::r1cs::{ConstraintSynthesizer, ConstraintSystemRef, SynthesisError};
 use ark_std::One;
 
+#[derive(Clone)]
 pub struct ZKProver {
     proving_key: ProvingKey<Bn254>,
     bend_vm: BendVM,

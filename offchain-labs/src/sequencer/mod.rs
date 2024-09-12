@@ -10,6 +10,7 @@ pub use transaction::Transaction;
 use std::time::{Duration, Instant};
 use std::collections::VecDeque;
 
+#[derive(Clone)]
 pub struct Sequencer {
     state: State,
     pending_transactions: VecDeque<Transaction>,

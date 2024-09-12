@@ -17,7 +17,9 @@ use ark_bn254::Bn254;
 use ark_groth16::Groth16;
 use ark_snark::SNARK;
 use ark_std::rand::thread_rng;
+use zk_rollup::Proof;
 
+#[derive(Clone)]
 pub struct OffchainLabs {
     prover: ZKProver,
     sequencer: sequencer::Sequencer,
@@ -53,6 +55,30 @@ impl OffchainLabs {
             sequencer,
             verifier,
         })
+    }
+
+    pub fn process_transaction_ex(&mut self, transaction: Transaction) -> Result<(bool, Option<Proof>), HVMError> {
+        println!("Processing transaction: {:?}", transaction);
+        self.sequencer.process_transaction(transaction)?;
+    
+        if let Some(batch) = self.sequencer.create_batch(true)? {
+            println!("Batch created: {:?}", batch);
+            let proof = self.prover.generate_proof(&batch)?;
+            println!("Proof generated: {:?}", proof);           
+
+            let is_valid = self.verifier.verify_proof(&proof, &batch.programs().iter().flat_map(|p| p.get_public_inputs()).collect::<Vec<_>>())?;
+            println!("Proof verification result: {}", is_valid);
+            
+            if is_valid {
+                self.sequencer.apply_proof(proof.clone(), &batch)?;
+                println!("Proof applied");
+            }
+    
+            Ok((is_valid, Some(proof.clone())))
+        } else {
+            println!("No batch created");
+            Ok((true, None))
+        }
     }
 
     pub fn process_transaction(&mut self, transaction: Transaction) -> Result<bool, HVMError> {
