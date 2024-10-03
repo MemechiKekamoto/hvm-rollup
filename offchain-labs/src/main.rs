@@ -4,7 +4,8 @@ use axum::{
     routing::{ get, post },
     http::StatusCode,
     Json, Router, Form,
-    extract::{ Query, State}
+    extract::{ Query, State},
+    response::IntoResponse,
 };
 use serde::{Deserialize, Serialize};
 
@@ -22,12 +23,32 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     info!("OffchainLabs initialized");
     let app = Router::<OffchainLabs>::new()
     .route("/submit_tx", post(submit_transaction))
+    .route("/get_keys", get(get_zk_keys))
     .with_state(hvm);
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:8334").await.unwrap();
     axum::serve(listener, app).await.unwrap();
 
     Ok(())
+}
+
+
+async fn get_zk_keys(
+    State(state): State<OffchainLabs>
+) -> impl IntoResponse {
+    
+    let pk = format!("{:?}", state.prover.proving_key);
+    let vk = format!("{:?}", state.verifier.verifying_key);
+    Json(ZkKeys {
+        pk,
+        vk
+    })
+}
+
+#[derive(Serialize)]
+struct ZkKeys {
+    pk: String,
+    vk: String
 }
 
 async fn submit_transaction(

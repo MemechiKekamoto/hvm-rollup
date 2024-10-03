@@ -10,7 +10,7 @@ use std::ops::AddAssign;
 
 #[derive(Clone)]
 pub struct ZKVerifier {
-    verifying_key: PreparedVerifyingKey<Bn254>,
+    pub verifying_key: PreparedVerifyingKey<Bn254>,
 }
 
 impl ZKVerifier {

@@ -21,9 +21,9 @@ use zk_rollup::Proof;
 
 #[derive(Clone)]
 pub struct OffchainLabs {
-    prover: ZKProver,
-    sequencer: sequencer::Sequencer,
-    verifier: ZKVerifier,
+    pub prover: ZKProver,
+    pub sequencer: sequencer::Sequencer,
+    pub verifier: ZKVerifier,
 }
 
 impl OffchainLabs {

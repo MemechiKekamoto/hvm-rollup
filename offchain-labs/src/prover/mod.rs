@@ -13,7 +13,7 @@ use ark_std::One;
 
 #[derive(Clone)]
 pub struct ZKProver {
-    proving_key: ProvingKey<Bn254>,
+    pub proving_key: ProvingKey<Bn254>,
     bend_vm: BendVM,
 }
 
