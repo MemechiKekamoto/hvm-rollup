@@ -1,4 +1,4 @@
-use offchain_labs::{sequencer::Transaction, zk_rollup::Proof, Config, OffchainLabs};
+use offchain_labs::{config::SequencerConfig, sequencer::{ Sequencer, Transaction}, zk_rollup::Proof, Config, OffchainLabs};
 use log::{info, error};
 use axum::{
     routing::{ get, post },
@@ -8,7 +8,7 @@ use axum::{
     response::IntoResponse,
 };
 use serde::{Deserialize, Serialize};
-
+use offchain_labs::zk_rollup::{State as ZkState};
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::init();
@@ -23,6 +23,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     info!("OffchainLabs initialized");
     let app = Router::<OffchainLabs>::new()
     .route("/submit_tx", post(submit_transaction))
+    .route("/sequencer", post(submit_to_sequencer))
     .route("/get_keys", get(get_zk_keys))
     .with_state(hvm);
 
@@ -49,6 +50,27 @@ async fn get_zk_keys(
 struct ZkKeys {
     pk: String,
     vk: String
+}
+
+async fn submit_to_sequencer(
+    State(mut state): State<OffchainLabs>,
+    Form(payload): Form<SubmitTransaction>,
+) -> impl IntoResponse {
+    let tx_data: TransactionData = serde_json::from_str(&payload.raw_transaction).unwrap();
+    let transaction = Transaction::new(tx_data.from, tx_data.to, 0, 1);
+    let mut seq = Sequencer::new(ZkState {
+        balance: 0,
+        nonce: 0
+    }, SequencerConfig {
+        max_pending_transactions: 1000,
+        max_pending_programs: 1000,
+        batch_interval_seconds: 500,
+        max_batch_size: 1000,
+        max_programs_per_batch: 1000
+    });
+    seq.process_transaction(transaction).unwrap();
+    seq.create_batch(true).unwrap();
+    Json(())
 }
 
 async fn submit_transaction(
