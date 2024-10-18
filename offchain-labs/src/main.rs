@@ -8,9 +8,13 @@ use axum::{
     response::IntoResponse,
 };
 use serde::{Deserialize, Serialize};
+use dotenvy::dotenv;
+use std::env;
 use offchain_labs::zk_rollup::{State as ZkState};
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    dotenv().ok();
+
     env_logger::init();
 
     let config = Config::load().unwrap_or_else(|e| {
@@ -27,12 +31,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     .route("/get_keys", get(get_zk_keys))
     .with_state(hvm);
 
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:8334").await.unwrap();
+    let mut PORT = env::var(if cfg!(debug_assertions) {"PORT_DEV"} else {"PORT_PROD"}).unwrap();
+
+    let log = format!("Listening on port {}", PORT);
+    info!("{}", log);
+    let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", PORT)).await.unwrap();
     axum::serve(listener, app).await.unwrap();
+
 
     Ok(())
 }
-
 
 async fn get_zk_keys(
     State(state): State<OffchainLabs>
@@ -53,7 +61,7 @@ struct ZkKeys {
 }
 
 async fn submit_to_sequencer(
-    State(mut state): State<OffchainLabs>,
+    State(state): State<OffchainLabs>,
     Form(payload): Form<SubmitTransaction>,
 ) -> impl IntoResponse {
     let tx_data: TransactionData = serde_json::from_str(&payload.raw_transaction).unwrap();
@@ -98,7 +106,6 @@ where
 {
     (StatusCode::INTERNAL_SERVER_ERROR, err.to_string())
 }
-
 
 #[derive(Deserialize, Debug)]
 #[allow(dead_code)]

@@ -30,6 +30,7 @@ tsconfig.*buildinfo
 yarn-debug.log*
 yarn-error.log*
 .idea/
-.log
+*.log
 env-config.js
 NOTES.md
+.env

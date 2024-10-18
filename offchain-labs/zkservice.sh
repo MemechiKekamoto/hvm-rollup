@@ -1,1 +1,1 @@
-RUST_LOG=info cargo run > zksvc.log
+RUST_LOG=info cargo run --release > zksvc.log
